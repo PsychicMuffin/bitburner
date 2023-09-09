@@ -1,14 +1,23 @@
+import Lodash from "/lib/lodash";
 import {NS} from "@ns";
+import {findServers} from "scripts/find_servers";
+import {startHacks} from "scripts/start_hacks";
 
 export async function main(ns: NS) {
-  const serverList: string[] = JSON.parse(ns.read("servers.txt"));
+  const serverList = await findServers(ns);
+  let nukedHosts: string[] = [];
   while (true) {
-    nukeServers(ns, serverList);
-    await ns.sleep(1000);
+    const newNukedHosts = nukeServers(ns, serverList);
+    if (!Lodash.isEqual(nukedHosts, newNukedHosts)) {
+      ns.print("nuked hosts updated; starting fresh scripts");
+      nukedHosts = newNukedHosts;
+      await startHacks(ns, newNukedHosts);
+    }
+    await ns.sleep(60000);
   }
 }
 
-function getPortOpeners(ns: NS) {
+function getPortOpeners(ns: NS): PortOpener[] {
   const portOpeners: PortOpener[] = [];
   if (ns.fileExists("BruteSSH.exe", "home")) {
     portOpeners.push(ns.brutessh);
@@ -43,7 +52,7 @@ function nukeServers(ns: NS, serverList: string[]) {
       nukedHosts.push(host);
     }
   });
-  ns.write("nuked_hosts.txt", JSON.stringify(nukedHosts), "w");
+  return nukedHosts;
 }
 
 function nukeServer(ns: NS, portOpeners: PortOpener[], host: string) {

@@ -1,10 +1,8 @@
 import {NS} from "@ns";
 
-export async function main(ns: NS) {
+export async function findServers(ns: NS): Promise<string[]> {
   const servers: string[] = [];
   scanHost("home");
-  const serverList = servers.slice(1);
-
   function scanHost(host: string) {
     if (!servers.includes(host)) {
       servers.push(host);
@@ -13,5 +11,5 @@ export async function main(ns: NS) {
     }
   }
 
-  ns.write("servers.txt", JSON.stringify(serverList), "w");
+  return servers.slice(1);
 }
