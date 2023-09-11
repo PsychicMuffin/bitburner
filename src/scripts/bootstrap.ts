@@ -5,7 +5,7 @@ import {
   getHackableServers,
   getNukedServers,
   purchaseAndUpgradeServers,
-  startHacks,
+  startHacks, startHacksForHome,
 } from "scripts/Servers";
 
 export async function main(ns: NS) {
@@ -18,13 +18,14 @@ export async function main(ns: NS) {
     const bestHackTarget = getBestHackTarget(ns, hackTargets);
     if (bestHackTarget === currentBestHackTarget) {
       //Nothing has changed, so we deploy to new or upgraded servers only
-      await startHacks(ns, newOrUpgradedServers, currentBestHackTarget);
+      await startHacks(ns, newOrUpgradedServers, bestHackTarget);
       await ns.sleep(10000);
     } else {
       //Best server to hack has changed, so we re-deploy to everything
       currentBestHackTarget = bestHackTarget;
+      await startHacksForHome(ns, bestHackTarget);
+      await startHacks(ns, ns.getPurchasedServers(), bestHackTarget);
       await startHacks(ns, hackTargets, bestHackTarget);
-      await startHacks(ns, ns.getPurchasedServers(), currentBestHackTarget);
     }
   }
 }

@@ -17,13 +17,13 @@ export function calculateHackRating(ns: NS, host: string): number {
   return moneyRate * (xpRate / 100) * (maxMoney / 1000000);
 }
 
-function calculateHackingXp(ns: NS, host: string) {
+export function calculateHackingXp(ns: NS, host: string) {
   const initialSecurity = ns.getServerBaseSecurityLevel(host);
   const xpGain = 3 + (initialSecurity * .3);
   return xpGain * ns.getPlayer().mults.hacking_exp;
 }
 
-function calculatePercentMoneyHacked(ns: NS, host: string) {
+export function calculatePercentMoneyHacked(ns: NS, host: string) {
   const currentHackSkill = ns.getHackingLevel();
   const minSecurity = ns.getServerMinSecurityLevel(host);
   const reqHackSkill = ns.getServerRequiredHackingLevel(host);
@@ -35,7 +35,7 @@ function calculatePercentMoneyHacked(ns: NS, host: string) {
   return difficultyMult * skillMult * personalMult / 240;
 }
 
-function calculateHackChance(ns: NS, host: string) {
+export function calculateHackChance(ns: NS, host: string) {
   const currentHackSkill = ns.getHackingLevel();
   const reqHackSkill = ns.getServerRequiredHackingLevel(host);
   const minSecurity = ns.getServerMinSecurityLevel(host);
@@ -48,7 +48,7 @@ function calculateHackChance(ns: NS, host: string) {
   return difficultyMult * skillChance * personalMulti;
 }
 
-function calculateHackTime(ns: NS, host: string) {
+export function calculateHackTime(ns: NS, host: string) {
   const currentHackSkill = ns.getHackingLevel();
   const reqHackSkill = ns.getServerRequiredHackingLevel(host);
   const minSecurity = ns.getServerMinSecurityLevel(host);

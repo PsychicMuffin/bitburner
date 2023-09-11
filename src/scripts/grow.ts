@@ -3,6 +3,6 @@ import {NS} from "@ns";
 export async function main(ns: NS) {
   const host: string = <string>ns.args[0];
   while (true) {
-    await ns.hack(host);
+    await ns.grow(host);
   }
 }
