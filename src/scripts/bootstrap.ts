@@ -1,63 +1,31 @@
-import Lodash from "/lib/lodash";
 import {NS} from "@ns";
-import {findServers} from "scripts/find_servers";
-import {startHacks} from "scripts/start_hacks";
+import {buyPortOpeners} from "scripts/PortOpeners";
+import {
+  getBestHackTarget,
+  getHackableServers,
+  getNukedServers,
+  purchaseAndUpgradeServers,
+  startHacks,
+} from "scripts/Servers";
 
 export async function main(ns: NS) {
-  const serverList = await findServers(ns);
-  let nukedHosts: string[] = [];
+  const hackableServers = getHackableServers(ns);
+  let currentBestHackTarget = "";
   while (true) {
-    const newNukedHosts = nukeServers(ns, serverList);
-    if (!Lodash.isEqual(nukedHosts, newNukedHosts)) {
-      ns.print("nuked hosts updated; starting fresh scripts");
-      nukedHosts = newNukedHosts;
-      await startHacks(ns, newNukedHosts);
+    buyPortOpeners(ns);
+    const newOrUpgradedServers = purchaseAndUpgradeServers(ns);
+    const hackTargets = getNukedServers(ns, hackableServers);
+    const bestHackTarget = getBestHackTarget(ns, hackTargets);
+    if (bestHackTarget === currentBestHackTarget) {
+      //Nothing has changed, so we deploy to new or upgraded servers only
+      await startHacks(ns, newOrUpgradedServers, currentBestHackTarget);
+      await ns.sleep(10000);
+    } else {
+      //Best server to hack has changed, so we re-deploy to everything
+      currentBestHackTarget = bestHackTarget;
+      await startHacks(ns, hackTargets, bestHackTarget);
+      await startHacks(ns, ns.getPurchasedServers(), currentBestHackTarget);
     }
-    await ns.sleep(60000);
   }
 }
 
-function getPortOpeners(ns: NS): PortOpener[] {
-  const portOpeners: PortOpener[] = [];
-  if (ns.fileExists("BruteSSH.exe", "home")) {
-    portOpeners.push(ns.brutessh);
-  }
-  if (ns.fileExists("FTPCrack.exe", "home")) {
-    portOpeners.push(ns.ftpcrack);
-  }
-  if (ns.fileExists("relaySMTP.exe", "home")) {
-    portOpeners.push(ns.relaysmtp);
-  }
-  if (ns.fileExists("HTTPWorm.exe", "home")) {
-    portOpeners.push(ns.httpworm);
-  }
-  if (ns.fileExists("SQLInject.exe", "home")) {
-    portOpeners.push(ns.sqlinject);
-  }
-  return portOpeners;
-}
-
-function nukeServers(ns: NS, serverList: string[]) {
-  const hackingSkill = ns.getHackingLevel();
-  const portOpeners = getPortOpeners(ns);
-  const nukedHosts: string[] = [];
-  serverList.forEach(host => {
-    const rootAccess = ns.hasRootAccess(host);
-    const minHackingSkill = ns.getServerRequiredHackingLevel(host);
-    const minOpenPorts = ns.getServerNumPortsRequired(host);
-    if (rootAccess) {
-      nukedHosts.push(host);
-    } else if (hackingSkill >= minHackingSkill && minOpenPorts <= portOpeners.length) {
-      nukeServer(ns, portOpeners, host);
-      nukedHosts.push(host);
-    }
-  });
-  return nukedHosts;
-}
-
-function nukeServer(ns: NS, portOpeners: PortOpener[], host: string) {
-  portOpeners.forEach(portOpener => portOpener(host));
-  ns.nuke(host);
-}
-
-type PortOpener = (host: string) => void;
