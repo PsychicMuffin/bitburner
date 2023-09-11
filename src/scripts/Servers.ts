@@ -27,17 +27,23 @@ export function purchaseAndUpgradeServers(ns: NS): string[] {
   while (purchasedServers.length < ns.getPurchasedServerLimit()) {
     const name = ns.purchaseServer(`purchased-server`, 8);
     if (Lodash.isEmpty(name)) {
-      break; //ran out of money, so we'll try again next loop
+      break; //ran out of money
     }
     newOrUpgradedServers.push(name);
   }
-  while (upgradeServers(ns)) {
-    //Keep upgrading!
+  while (true) {
+    const upgradedServer = upgradeLowestRamServer(ns);
+    if (Lodash.isEmpty(upgradedServer)) {
+      break; //no more servers to upgrade
+    }
+    if (!newOrUpgradedServers.includes(upgradedServer)) {
+      newOrUpgradedServers.push(upgradedServer);
+    }
   }
   return newOrUpgradedServers;
 }
 
-export function upgradeServers(ns: NS) {
+export function upgradeLowestRamServer(ns: NS) {
   const purchasedServers = ns.getPurchasedServers();
   if (purchasedServers.length > 0) {
     const servers: PurchasedServer[] = purchasedServers.map(host => ({
@@ -47,10 +53,12 @@ export function upgradeServers(ns: NS) {
     servers.sort((a, b) => a.ram - b.ram);
     const lowestRamServer = servers[0];
     if (lowestRamServer.ram < ns.getPurchasedServerMaxRam()) {
-      return ns.upgradePurchasedServer(lowestRamServer.host, lowestRamServer.ram * 2);
+      if (ns.upgradePurchasedServer(lowestRamServer.host, lowestRamServer.ram * 2)) {
+        return lowestRamServer.host;
+      }
     }
   }
-  return false;
+  return "";
 }
 
 export function getNukedServers(ns: NS, serverList: string[]) {
