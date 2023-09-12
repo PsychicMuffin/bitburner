@@ -3,15 +3,11 @@ import Lodash from "lib/lodash";
 import {calculateHackRating, RatedServer} from "scripts/HackRating";
 import {getPortOpeners, NsPortOpener} from "scripts/PortOpeners";
 
-const BOOTSTRAP_SCRIPT = "scripts/bootstrap.js";
 const WEAKEN_SCRIPT = "scripts/weaken.js";
 const GROW_SCRIPT = "scripts/grow.js";
 const HACK_SCRIPT = "scripts/hack.js";
 
 const HACK_OFFSET_TIMER = 10000;
-
-//TODO: fix scaling of hack algorithm so this can be removed
-const MAX_PURCHASED_SERVER_RAM = 16384;
 
 const WEAKEN_RATIO = .12;
 const GROW_RATIO = .85;
@@ -62,7 +58,7 @@ export function upgradeLowestRamServer(ns: NS) {
     }));
     servers.sort((a, b) => a.ram - b.ram);
     const lowestRamServer = servers[0];
-    if (lowestRamServer.ram < MAX_PURCHASED_SERVER_RAM) {
+    if (lowestRamServer.ram < ns.getPurchasedServerMaxRam()) {
       if (ns.upgradePurchasedServer(lowestRamServer.host, lowestRamServer.ram * 2)) {
         return lowestRamServer.host;
       }
