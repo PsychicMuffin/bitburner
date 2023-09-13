@@ -10,7 +10,7 @@ import {
 } from "scripts/Servers";
 
 export async function main(ns: NS) {
-  const hackableServers = getHackableServers(ns);
+  const hackableServers = getHackableServers(ns).map(server => server.host);
   let currentBestHackTarget = "";
   while (true) {
     buyPortOpeners(ns);
@@ -22,7 +22,7 @@ export async function main(ns: NS) {
       currentBestHackTarget = bestHackTarget;
       await startHacksForHome(ns, bestHackTarget);
       await startHacks(ns, ns.getPurchasedServers(), bestHackTarget);
-      // await startHacks(ns, hackTargets, bestHackTarget);
+      await startHacks(ns, hackTargets, bestHackTarget);
     } else if (newOrUpgradedServers.length > 0) {
       //Best target hasn't changed, but we have new servers to deploy to
       await startHacks(ns, newOrUpgradedServers, bestHackTarget);

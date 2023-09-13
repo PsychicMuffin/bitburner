@@ -10,21 +10,24 @@ const HACK_SCRIPT = "scripts/hack.js";
 const HACK_OFFSET_TIMER = 10000;
 
 const WEAKEN_RATIO = .12;
-const GROW_RATIO = .85;
+const HACK_RATIO = .03;
 
-export function getHackableServers(ns: NS): string[] {
-  const servers: string[] = [];
-  scanHost("home");
+export function getHackableServers(ns: NS): ServerAndPath[] {
+  const purchasedServers = ns.getPurchasedServers();
+  const servers: ServerAndPath[] = [];
+  ns.scan("home")
+    .filter(host => !purchasedServers.includes(host))
+    .forEach(host => scanHost(["home", host]));
+  return servers;
 
-  function scanHost(host: string) {
-    if (!servers.includes(host)) {
-      servers.push(host);
-      const neighbors = ns.scan(host);
-      neighbors.forEach(host => scanHost(host));
-    }
+  function scanHost(path: string[]) {
+    const prev = path[path.length - 2];
+    const host = path[path.length - 1];
+    servers.push({host, path});
+    ns.scan(host)
+      .filter(neighbor => neighbor !== prev)
+      .forEach(neighbor => scanHost([...path, neighbor]));
   }
-
-  return servers.slice(1);
 }
 
 export function purchaseAndUpgradeServers(ns: NS): string[] {
@@ -115,25 +118,42 @@ export async function startHacks(ns: NS, hosts: string[], targetHost: string) {
 export async function startHacksForHome(ns: NS, targetHost: string) {
   killScripts(ns, "home");
   const availableRam = ns.getServerMaxRam("home") - ns.getServerUsedRam("home");
-  await startHacksForServer(ns, availableRam, "home", targetHost);
+  await startHacksForServer(ns, .99 * availableRam, "home", targetHost);
 }
 
 export async function startHacksForServer(ns: NS, ram: number, host: string, targetHost: string) {
   const threads = calculateThreads(ns, ram);
-  if (threads.weakenThreads > 0) {
-    ns.exec(WEAKEN_SCRIPT, host, threads.weakenThreads, targetHost);
+
+  const divisions = 10;
+  const weakenThreads = divideThreads(threads.weakenThreads, divisions);
+  const growThreads = divideThreads(threads.growThreads, divisions);
+  const hackThreads = divideThreads(threads.hackThreads, divisions);
+
+  const threadArray: Threads[] = [];
+  for (let i = 0; i < divisions; i++) {
+    threadArray.push({
+      weakenThreads: weakenThreads[i],
+      growThreads: growThreads[i],
+      hackThreads: hackThreads[i],
+    });
   }
-  if (threads.growThreads > 0) {
-    ns.exec(GROW_SCRIPT, host, threads.growThreads, targetHost);
+
+  for (const threads of threadArray) {
+    if (threads.weakenThreads > 0) {
+      ns.exec(WEAKEN_SCRIPT, host, threads.weakenThreads, targetHost);
+    }
+    if (threads.growThreads > 0) {
+      ns.exec(GROW_SCRIPT, host, threads.growThreads, targetHost);
+    }
+    if (threads.hackThreads > 0) {
+      ns.exec(HACK_SCRIPT, host, threads.hackThreads, targetHost);
+    }
+    await ns.sleep(HACK_OFFSET_TIMER / divisions);
   }
-  if (threads.hackThreads > 0) {
-    ns.exec(HACK_SCRIPT, host, threads.hackThreads, targetHost);
-  }
-  await ns.sleep(HACK_OFFSET_TIMER);
 }
 
 export function calculateThreads(ns: NS, ram: number): Threads {
-  const remainingGrowRatio = GROW_RATIO / (1 - WEAKEN_RATIO);
+  const remainingHackRatio = HACK_RATIO / (1 - WEAKEN_RATIO);
 
   const weakenRam = ns.getScriptRam(WEAKEN_SCRIPT);
   const growRam = ns.getScriptRam(GROW_SCRIPT);
@@ -141,21 +161,34 @@ export function calculateThreads(ns: NS, ram: number): Threads {
 
   let remainingRam = ram;
 
-  const weakenThreads = Math.floor((remainingRam * WEAKEN_RATIO) / weakenRam);
+  const weakenThreads = Math.max(1, Math.floor((remainingRam * WEAKEN_RATIO) / weakenRam));
   remainingRam -= weakenThreads * weakenRam;
 
-  const growThreads = Math.floor((remainingRam * remainingGrowRatio) / growRam);
-  remainingRam -= growThreads * growRam;
+  const hackThreads = Math.max(1, Math.floor((remainingRam * remainingHackRatio) / hackRam));
+  remainingRam -= hackThreads * hackRam;
 
-  const hackThreads = Math.floor(remainingRam / hackRam);
+  const growThreads = Math.floor(remainingRam / growRam);
 
   return {weakenThreads, growThreads, hackThreads};
+}
+
+export function divideThreads(threads: number, divisions: number): number[] {
+  const size = Math.floor(threads / divisions);
+  const threadArray: number[] = Array(divisions - 1);
+  threadArray.fill(size, 0, divisions - 1);
+  threadArray.push(threads - (threadArray.length * size));
+  return threadArray;
 }
 
 export function killScripts(ns: NS, host: string) {
   ns.scriptKill(WEAKEN_SCRIPT, host);
   ns.scriptKill(GROW_SCRIPT, host);
   ns.scriptKill(HACK_SCRIPT, host);
+}
+
+export type ServerAndPath = {
+  host: string,
+  path: string[]
 }
 
 export type PurchasedServer = {

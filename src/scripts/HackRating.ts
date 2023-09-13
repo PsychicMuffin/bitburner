@@ -12,8 +12,7 @@ export function calculateHackRating(ns: NS, host: string): number {
   const averageXpGain = (hackingXp * hackChance) + ((hackingXp / 4) * (1 - hackChance));
   const xpRate = averageXpGain / hackTime;
 
-  //weight by max money since we're generally hacking to 0 and growing again no matter what
-  return moneyRate * (maxMoney / 1000000);
+  return moneyRate;
 }
 
 export function calculateHackingXp(ns: NS, host: string) {

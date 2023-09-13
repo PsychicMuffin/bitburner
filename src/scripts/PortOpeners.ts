@@ -30,7 +30,7 @@ export function getPortOpeners(ns: NS): NsPortOpener[] {
 }
 
 export function buyPortOpeners(ns: NS): boolean {
-  return false;//TODO: requires something 4
+  return false;//TODO: requires BitNode 4
 
   // ns.singularity.purchaseTor();
   // let boughtSomething = false;
