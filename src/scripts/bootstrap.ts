@@ -1,5 +1,6 @@
-import {calculateHackRating, RatedServer} from "/scripts/HackRating";
 import {NS} from "@ns";
+import Lodash from "lib/lodash";
+import {calculateHackRating, RatedServer} from "scripts/HackRating";
 import {buyPortOpeners} from "scripts/PortOpeners";
 import {
   getBestHackTarget,
@@ -17,7 +18,9 @@ export async function main(ns: NS) {
     buyPortOpeners(ns);
     const newOrUpgradedServers = purchaseAndUpgradeServers(ns);
     const hackTargets = getNukedServers(ns, hackableServers);
-    currentBestHackTarget.rating = calculateHackRating(ns, currentBestHackTarget.name);
+    if (!Lodash.isEmpty(currentBestHackTarget.name)) {
+      currentBestHackTarget.rating = calculateHackRating(ns, currentBestHackTarget.name);
+    }
     const bestHackTarget = getBestHackTarget(ns, hackTargets);
     if (bestHackTarget.rating >= (1.1 * currentBestHackTarget.rating)) {
       //Best target has changed, so we re-deploy to everything
