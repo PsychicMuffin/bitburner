@@ -88,13 +88,13 @@ export function getNukedServers(ns: NS, serverList: string[]) {
   return nukedHosts;
 }
 
-export function getBestHackTarget(ns: NS, serverList: string[]) {
+export function getBestHackTarget(ns: NS, serverList: string[]): RatedServer {
   const bestServers: RatedServer[] = [];
   serverList.forEach(host => {
     bestServers.push({name: host, rating: calculateHackRating(ns, host)});
   });
   bestServers.sort((a, b) => b.rating - a.rating);
-  return bestServers[0].name;
+  return bestServers[0];
 }
 
 export function nukeServer(ns: NS, portOpeners: NsPortOpener[], host: string) {
